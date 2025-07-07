@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<sdf version="1.7">
+  <model name="moving_cylinder">
+    <static>false</static> <!-- IMPORTANT: false allows the model to be moved -->
+    <link name="link">
+      <pose>0 0 0.5 0 0 0</pose> <!-- Positioned so its base is at z=0 -->
+      <visual name="visual">
+        <geometry>
+          <cylinder>
+            <radius>0.3</radius>
+            <length>1.0</length>
+          </cylinder>
+        </geometry>
+        <material>
+          <ambient>1 0 0 1</ambient>
+          <diffuse>1 0 0 1</diffuse>
+        </material>
+      </visual>
+      <collision name="collision">
+        <geometry>
+          <cylinder>
+            <radius>0.3</radius>
+            <length>1.0</length>
+          </cylinder>
+        </geometry>
+      </collision>
+    </link>
+  </model>
+</sdf>
