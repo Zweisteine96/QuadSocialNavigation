@@ -18,10 +18,10 @@ def export_model(ckpt_path, export_path):
     print(f"--> Loading source model from '{ckpt_path}'...")
     device = torch.device('cpu') # right now cpu-only machine
 
-    # Load model architeture and state dict
+    # Load model architecture and state dict
     try:
         model = SocialVAE(
-            horizon=OB_HORIZON,
+            horizon=PRED_HORIZON,
             ob_radius=OB_RADIUS,
             hidden_dim=RNN_HIDDEN_DIM
         )
