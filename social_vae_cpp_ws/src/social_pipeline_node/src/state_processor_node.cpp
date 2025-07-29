@@ -24,14 +24,16 @@ class StateProcessorNode : public rclcpp::Node
 {
 public:
     StateProcessorNode()
-    : Node("state_processor_node")
+    : Node("state_processor_node"), is_initialized_(false)
     {
+        RCLCPP_INFO(this->get_logger(), "State Processor Node is initializing...");
         // 1. Get the parameters
         this->declare_parameter<std::string>("model_path", "");
         std::string model_path = this->get_parameter("model_path").as_string();
         if (model_path.empty()) {
+            // Hardcoded path to load the model
             std::string package_share_path = ament_index_cpp::get_package_share_directory("social_pipeline_node");
-            model_path = package_share_path + "/data/model/eth/social_vae_traced.pt";
+            model_path = package_share_path + "/model/eth/social_vae_traced.pt";
             /*
             try {
                 std::string package_share_path = ament_index_cpp::get_package_share_directory("social_pipeline_node");
@@ -44,8 +46,19 @@ public:
             */
         }
 
+        // Publish the full kinematics state (pos, vel, acc) of agents with valid history
+        state_publisher_ = this->create_publisher<social_msgs::msg::AgentStateArray>("/full_agent_states", 10);
+
+        // Publish the predicted future paths for those agents
+        path_publisher_ = this->create_publisher<social_msgs::msg::PredictedPathArray>("/predicted_paths", 10);
+
         // 2. Initialize the Predictor model
+        RCLCPP_INFO(this->get_logger(), "Loading model from %s...", model_path.c_str());
         predictor_ = std::make_unique<Predictor>(model_path);
+
+        is_initialized_ = true;
+        // NOTE: could be misleading, no error thrown out from the internal check in last lines.
+        RCLCPP_INFO(this->get_logger(), "Model loaded successfully. Node is ready.");
 
         // 3. Create ROS2 components
         // Subscribe to the raw agent data
@@ -53,25 +66,27 @@ public:
             "/raw_agents", 10, std::bind(&StateProcessorNode::agent_callback, this, std::placeholders::_1)
         );
 
-        // Publish the full kinematics state (pos, vel, acc) of agents with valid history
-        state_publisher_ = this->create_publisher<social_msgs::msg::AgentStateArray>("/full_agent_states", 10);
-
-        // Publish the predicted future paths for those agents
-        path_publisher_ = this->create_publisher<social_msgs::msg::PredictedPathArray>("/predicted_paths", 10);
-
         RCLCPP_INFO(this->get_logger(), "State Processor Node has started successfully.");
     }
 private:
     // Main callback function, triggered whenever new raw agent data arrives
     void agent_callback(const social_msgs::msg::AgentStateArray::SharedPtr msg)
     {
+        if (!is_initialized_) {
+            RCLCPP_WARN_ONCE(this->get_logger(), "Received message but node is not yet fully initialized. Skipping.");
+            return;
+        }
         RCLCPP_INFO(this->get_logger(), "Received data for frame %s", msg->header.frame_id.c_str());
 
         // 1. Ingest new data and update internal history buffer
         int current_frame_id = std::stoi(msg->header.frame_id);
         for (const auto & agent : msg->agents){
+            // Fix the problem of float32
+            auto tensor_opts = torch::TensorOptions().dtype(torch::kFloat32);
+
             // Create a 6-element tensor for {x, y, vx, vy, ax, ay}, initialized to NaN
-            torch::Tensor features = torch::full({6}, std::numeric_limits<double>::quiet_NaN());
+            torch::Tensor features = torch::full({6}, std::numeric_limits<float>::quiet_NaN(), tensor_opts);
+
             features[0] = agent.x;
             features[1] = agent.y;
             // Store this new data point in our history map
@@ -121,13 +136,18 @@ private:
         torch::Tensor history_batch = torch::stack(history_batch_list, 1);
 
         // NOTE: Use a placeholder for neighbors. We will come back for this later!
-        torch::Tensor neighbors_batch = torch::full({OB_HORIZON, history_batch.size(1), 1, 6}, 1e9, torch::kFloat64);
+        torch::Tensor neighbors_batch = torch::full({OB_HORIZON, history_batch.size(1), 1, 6}, 1e9, torch::kFloat32);
+
+        history_batch = history_batch.to(torch::kFloat32);
+        neighbors_batch = neighbors_batch.to(torch::kFloat32);
 
         // Run the inference
         torch::Tensor prediction_batch = predictor_->predict(history_batch, neighbors_batch);
+        //std::cout << "Prediction batch: " << prediction_batch << std::endl;
 
         // 5. Publish the predicted trajectories
         if (prediction_batch.numel() > 0) {
+            //std::cout << "hello world" << std::endl;
             auto paths_msg = social_msgs::msg::PredictedPathArray();
             paths_msg.header = msg->header;
             for (long i = 0; i < pids_for_processing.size(); ++i) {
@@ -178,7 +198,7 @@ private:
                         torch::Tensor acc = (vel - vel1) / dt;
                         features2.slice(0, 4, 6) = acc;
                     } else {
-                        features2.slice(0, 4, 6) = torch::zeros({2}, torch::kFloat64);
+                        features2.slice(0, 4, 6) = torch::zeros({2}, torch::kFloat32);
                     }
                 }
             }
@@ -219,10 +239,11 @@ private:
             }
             history_features.push_back(feats);
         }
-        return torch::stack(history_features).to(torch::kFloat64);
+        return torch::stack(history_features).to(torch::kFloat32);
     }
 
     // ROS2 components and state
+    bool is_initialized_;
     std::unique_ptr<Predictor> predictor_;
     rclcpp::Subscription<social_msgs::msg::AgentStateArray>::SharedPtr subscription_;
     rclcpp::Publisher<social_msgs::msg::AgentStateArray>::SharedPtr state_publisher_;

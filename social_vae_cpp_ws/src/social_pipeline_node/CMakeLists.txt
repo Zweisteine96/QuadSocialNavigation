@@ -11,7 +11,7 @@ find_package(rclcpp REQUIRED)
 find_package(social_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(ament_index_cpp REQUIRED)
-#find_package(SFML 2.5 COMPONENTS system window graphics REQUIRED)
+find_package(SFML 2.5 COMPONENTS system window graphics REQUIRED)
 
 # NOTE: Find LibTorch
 set(Torch_DIR ${CMAKE_SOURCE_DIR}/../../libtorch)
@@ -27,8 +27,8 @@ ament_target_dependencies(state_processor_node rclcpp social_msgs nav_msgs)
 #target_link_libraries(state_processor_node PRIVATE ${TORCH_LIBRARIES}) # link to LibTorch libraries
 
 # Node 3: The Visualizer
-#add_executable(visualizer_node src/visualizer_node.cpp)
-#ament_target_dependencies(visualizer_node rclcpp social_msgs nav_msgs)
+add_executable(visualizer_node src/visualizer_node.cpp)
+ament_target_dependencies(visualizer_node rclcpp social_msgs nav_msgs)
 #target_link_libraries(visualizer_node PRIVATE sfml-graphics sfml-window sfml-system) # link to SFML libraries
 
 # Specify Include Directories for our own headers
@@ -50,11 +50,18 @@ target_link_libraries(
   ${TORCH_LIBRARIES}
 )
 
+target_link_libraries(
+  visualizer_node
+  sfml-graphics 
+  sfml-window 
+  sfml-system
+)
+
 # Install the compiled programs
 install(TARGETS
   agent_publisher_node
   state_processor_node
-  #visualizer_node
+  visualizer_node
   DESTINATION lib/${PROJECT_NAME}
 )
 

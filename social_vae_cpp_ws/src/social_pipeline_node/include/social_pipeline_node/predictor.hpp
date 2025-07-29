@@ -13,6 +13,8 @@ public:
     // Run a prediction given history and neighbor data
     torch::Tensor predict(const torch::Tensor& history, const torch::Tensor& neighbors);
 
+    bool is_initialized() const { return is_initialized_; }
+
 private:
     torch::jit::script::Module module_; // The loaded TorchScript model
     bool is_initialized_ = false; // Flag to ensure the model was loaded correctly
