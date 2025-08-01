@@ -13,6 +13,9 @@
   <depend>social_msgs</depend>
   <depend>nav_msgs</depend>
   <depend>ament_index_cpp</depend>
+  <depend>rosbag2_cpp</depend>
+  <depend>rosbag2_storage</depend>
+  <depend>nlohmann-json3-dev</depend>
 
   <build_depend>sfml</build_depend> 
 
