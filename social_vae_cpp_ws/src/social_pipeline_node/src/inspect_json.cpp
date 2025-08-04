@@ -1,3 +1,6 @@
+// Copyright 2025 CHENG GUO
+// Licensed under the Apache License, Version 2.0
+
 // This file is simply to inspect the nested JSON messages.
 // It reads the FIRST message from the sensor_sim/Obstacles topic,
 // then perfomrs a two-level JSON parse,

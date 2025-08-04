@@ -1,3 +1,10 @@
+// Copyright 2025 CHENG GUO
+// Licensed under the Apache License, Version 2.0
+
+// This file reads the JSON-format message in the original .db3 file,
+// retrieve the [x, v, vx, vy, ax, ay] data of each agent at each frame,
+// then save them to a CSV file in a pre-defined format.
+
 #include <iostream>
 #include <fstream>
 #include <string>

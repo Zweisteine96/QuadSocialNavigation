@@ -67,6 +67,14 @@ target_link_libraries(
   nlohmann_json::nlohmann_json
 )
 
+# New node: json-format quasi-live streaming node
+add_executable(data_cleaner_node src/data_cleaner_node.cpp)
+ament_target_dependencies(data_cleaner_node rclcpp rosbag2_cpp rosbag2_storage example_interfaces social_msgs)
+target_link_libraries(
+  data_cleaner_node
+  nlohmann_json::nlohmann_json
+)
+
 # Specify Include Directories for our own headers
 target_include_directories(state_processor_node PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -85,6 +93,7 @@ install(TARGETS
   visualizer_node
   bag_reader_node
   json_inspector_node
+  data_cleaner_node
   DESTINATION lib/${PROJECT_NAME}
 )
 

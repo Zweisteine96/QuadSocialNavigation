@@ -1,3 +1,6 @@
+// Copyright 2025 CHENG GUO
+// Licensed under the Apache License, Version 2.0
+
 #include "social_pipeline_node/predictor.hpp"
 #include <iostream>
 
